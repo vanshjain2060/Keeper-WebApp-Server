@@ -1,6 +1,9 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
+const salRound = 10;
+
 const app = express();
 
 const cors = require('cors')
@@ -27,24 +30,27 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model("User", userSchema);
 
 app.post("/register",async function(req, res){
+    const hashedPassword = await bcrypt.hash(req.body.password, salRound);
+
 await User.findOne({email : req.body.email}) 
-    .then((existingUser) => {
+    .then(async (existingUser) => {
         if( !existingUser || !existingUser._id) {
 
             const newUser = new User({
                 email : req.body.email,
-                password : req.body.password
+                password : hashedPassword
             });
             console.log(newUser);
             newUser.save();
             res.send(newUser._id)
         }
         else {
-            if(existingUser.password === req.body.password) {
-                res.send(existingUser._id);
-            }else if(existingUser.password !== req.body.password) {
-                res.send("");
-            }
+            const match = await bcrypt.compare(req.body.password, existingUser.password);
+                if(match) {
+                    res.send(existingUser._id);
+                }else {
+                    res.send("");
+                }
         }
     })
     .catch((err) =>{
@@ -58,12 +64,13 @@ app.post("/login" ,async function (req, res) {
     const enteredEmail = req.body.email;
     const enteredPassword = req.body.password;
 await    User.findOne({email : enteredEmail}) 
-        .then((user) => {
+        .then(async (user) => {
             if( !user._id || !user) return res.status(499).send("No User Found.");
             else {
-                if(user.password === enteredPassword) {
+                const match = await bcrypt.compare(req.body.password, user.password);
+                if(match) {
                     res.send(user._id);
-                }else if(user.password !== password) {
+                }else {
                     res.send("");
                 }
             }
@@ -132,9 +139,8 @@ app.delete("/user/:userId/note/:noteId", async (req, res) => {
     } catch (error) {
       res.status(500).send("Error deleting user's note");
     }
-  });
-  
-  
+});
+
 
 app.patch("/user/:userId/note/:noteId", async (req, res) => {
   const { userId, noteId } = req.params;
