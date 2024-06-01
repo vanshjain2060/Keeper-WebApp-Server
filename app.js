@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
+const md5 = require("md5")
 const bcrypt = require("bcrypt");
 const salRound = 10;
 
@@ -31,13 +32,13 @@ const User = mongoose.model("User", userSchema);
 
 app.post("/register",async function(req, res){
     const hashedPassword = await bcrypt.hash(req.body.password, salRound);
-
-await User.findOne({email : req.body.email}) 
+    const hashEmail = md5(req.body.email);
+await User.findOne({email : hashEmail}) 
     .then(async (existingUser) => {
         if( !existingUser || !existingUser._id) {
 
             const newUser = new User({
-                email : req.body.email,
+                email : hashEmail,
                 password : hashedPassword
             });
             console.log(newUser);
@@ -61,9 +62,8 @@ await User.findOne({email : req.body.email})
 });
 
 app.post("/login" ,async function (req, res) {
-    const enteredEmail = req.body.email;
     const enteredPassword = req.body.password;
-await    User.findOne({email : enteredEmail}) 
+await    User.findOne({email : md5(req.body.email)}) 
         .then(async (user) => {
             if( !user._id || !user) return res.status(499).send("No User Found.");
             else {
