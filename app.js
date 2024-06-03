@@ -10,7 +10,7 @@ const app = express();
 
 const cors = require("cors");
 app.use(cors({
-  origin: 'http://localhost:3000'
+  origin: 'https://keeper-web-app-99jd.vercel.app'
 }));
 app.use(express.json());
 
