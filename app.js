@@ -1,4 +1,3 @@
-const env = require("dotenv");
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
@@ -7,6 +6,8 @@ const bcrypt = require("bcrypt");
 const salRound = 10;
 require("dotenv").config();
 const app = express();
+const env = require("dotenv");
+
 
 const cors = require("cors");
 app.use(cors({
@@ -111,32 +112,12 @@ app.get("/user/:userId/note", async (req, res) => {
   }
 });
 
-// app.delete("/user/:userId/note/:noteId", async (req, res) => {
-//   const {userId, noteId} = req.params;
-
-//     const user = await User.findById(userId);
-//     const note = user.notes.id(noteId);
-//     if (note) {
-//         console.log("note found");
-//       note.remove();
-//       await user.save();
-//     }
-//       userUpdated = await User.findById(userId);
-//       res.send(userUpdated.notes);
-// });
-
 app.delete("/user/:userId/note/:noteId", async (req, res) => {
   const { userId, noteId } = req.params;
   try {
     const user = await User.findById(userId);
-    //   const noteIndex = user.notes.indexOf(noteId);
-
-    //   if (noteIndex === -1) {
-    //     return res.status(404).send("Note not found");
-    //   }
-    user.notes.splice(noteId, 1);
+    user.notes.pull({ _id: noteId });
     await user.save();
-
     res.send(user.notes);
   } catch (error) {
     res.status(500).send("Error deleting user's note");
