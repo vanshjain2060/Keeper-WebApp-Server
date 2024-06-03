@@ -1,85 +1,87 @@
+const env = require("dotenv");
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-const md5 = require("md5")
+const md5 = require("md5");
 const bcrypt = require("bcrypt");
 const salRound = 10;
-
+require("dotenv").config();
 const app = express();
 
-const cors = require('cors')
-app.use(cors())
-app.use(express.json())
+const cors = require("cors");
+app.use(cors());
+app.use(express.json());
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
-mongoose.connect("mongodb://localhost:27017/userNotesDB", { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect(
+  `mongodb+srv://admin-vansh:${process.env.PASSWORD}@cluster0.ki3p5of.mongodb.net/userNotesDB`,
+  { useNewUrlParser: true, useUnifiedTopology: true }
+);
 
 const noteSchema = new mongoose.Schema({
   title: String,
-  content: String
+  content: String,
 });
 
-const Note = mongoose.model("Note" , noteSchema)
+const Note = mongoose.model("Note", noteSchema);
 
 const userSchema = new mongoose.Schema({
   email: String,
   password: String,
-  notes: [noteSchema]
+  notes: [noteSchema],
 });
 
 const User = mongoose.model("User", userSchema);
 
-app.post("/register",async function(req, res){
-    const hashedPassword = await bcrypt.hash(req.body.password, salRound);
-    const hashEmail = md5(req.body.email);
-await User.findOne({email : hashEmail}) 
+app.post("/register", async function (req, res) {
+  const hashedPassword = await bcrypt.hash(req.body.password, salRound);
+  const hashEmail = md5(req.body.email);
+  await User.findOne({ email: hashEmail })
     .then(async (existingUser) => {
-        if( !existingUser || !existingUser._id) {
-
-            const newUser = new User({
-                email : hashEmail,
-                password : hashedPassword
-            });
-            console.log(newUser);
-            newUser.save();
-            res.send(newUser._id)
+      if (!existingUser || !existingUser._id) {
+        const newUser = new User({
+          email: hashEmail,
+          password: hashedPassword,
+        });
+        console.log(newUser);
+        newUser.save();
+        res.send(newUser._id);
+      } else {
+        const match = await bcrypt.compare(
+          req.body.password,
+          existingUser.password
+        );
+        if (match) {
+          res.send(existingUser._id);
+        } else {
+          res.send("");
         }
-        else {
-            const match = await bcrypt.compare(req.body.password, existingUser.password);
-                if(match) {
-                    res.send(existingUser._id);
-                }else {
-                    res.send("");
-                }
-        }
+      }
     })
-    .catch((err) =>{
-        res.status(500).send(err)
-})
-
-    
+    .catch((err) => {
+      res.status(500).send(err);
+    });
 });
 
-app.post("/login" ,async function (req, res) {
-    const enteredPassword = req.body.password;
-await    User.findOne({email : md5(req.body.email)}) 
-        .then(async (user) => {
-            if( !user._id || !user) return res.status(499).send("No User Found.");
-            else {
-                const match = await bcrypt.compare(req.body.password, user.password);
-                if(match) {
-                    res.send(user._id);
-                }else {
-                    res.send("");
-                }
-            }
-        })
-        .catch((err) =>{
-            res.status(500).send("No User Found.")
-        })
-})
-
+app.post("/login", async function (req, res) {
+  const enteredPassword = req.body.password;
+  await User.findOne({ email: md5(req.body.email) })
+    .then(async (user) => {
+      if (!user._id || !user) return res.status(499).send("No User Found.");
+      else {
+        const match = await bcrypt.compare(req.body.password, user.password);
+        if (match) {
+          res.send(user._id);
+        } else {
+          res.send("");
+        }
+      }
+    })
+    .catch((err) => {
+      res.status(500).send("No User Found.");
+    });
+});
 
 app.post("/user/:userId/note", async (req, res) => {
   const userId = req.params.userId;
@@ -96,7 +98,6 @@ app.post("/user/:userId/note", async (req, res) => {
   }
 });
 
-
 app.get("/user/:userId/note", async (req, res) => {
   const userId = req.params.userId;
 
@@ -108,11 +109,10 @@ app.get("/user/:userId/note", async (req, res) => {
   }
 });
 
-
 // app.delete("/user/:userId/note/:noteId", async (req, res) => {
 //   const {userId, noteId} = req.params;
 
-//     const user = await User.findById(userId); 
+//     const user = await User.findById(userId);
 //     const note = user.notes.id(noteId);
 //     if (note) {
 //         console.log("note found");
@@ -124,23 +124,22 @@ app.get("/user/:userId/note", async (req, res) => {
 // });
 
 app.delete("/user/:userId/note/:noteId", async (req, res) => {
-    const { userId, noteId } = req.params;
-    try {
-      const user = await User.findById(userId);
+  const { userId, noteId } = req.params;
+  try {
+    const user = await User.findById(userId);
     //   const noteIndex = user.notes.indexOf(noteId);
-  
+
     //   if (noteIndex === -1) {
     //     return res.status(404).send("Note not found");
     //   }
-      user.notes.splice(noteId, 1);
-      await user.save();
-  
-      res.send(user.notes);
-    } catch (error) {
-      res.status(500).send("Error deleting user's note");
-    }
-});
+    user.notes.splice(noteId, 1);
+    await user.save();
 
+    res.send(user.notes);
+  } catch (error) {
+    res.status(500).send("Error deleting user's note");
+  }
+});
 
 app.patch("/user/:userId/note/:noteId", async (req, res) => {
   const { userId, noteId } = req.params;
@@ -158,6 +157,6 @@ app.patch("/user/:userId/note/:noteId", async (req, res) => {
   }
 });
 
-app.listen(process.env.PORT || 8000, () => {
-  console.log("Server is running on port 8000.");
+app.listen(process.env.PORT || 3000, () => {
+  console.log("Server is running on port", `${process.env.PORT}`);
 });
