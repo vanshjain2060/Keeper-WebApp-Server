@@ -6,12 +6,11 @@ const bcrypt = require("bcrypt");
 const salRound = 10;
 require("dotenv").config();
 const app = express();
-const env = require("dotenv");
-
 
 const cors = require("cors");
 app.use(cors({
-  origin: 'https://keeper-web-app-99jd.vercel.app'
+  origin: 'https://keeper-web-app-99jd.vercel.app',
+  methods: ['GET', 'POST', 'PATCH', 'DELETE']
 }));
 app.use(express.json());
 
@@ -48,7 +47,7 @@ app.post("/register", async function (req, res) {
           password: hashedPassword,
         });
         console.log(newUser);
-        newUser.save();
+        await newUser.save();
         res.send(newUser._id);
       } else {
         const match = await bcrypt.compare(
@@ -71,14 +70,12 @@ app.post("/login", async function (req, res) {
   const enteredPassword = req.body.password;
   await User.findOne({ email: md5(req.body.email) })
     .then(async (user) => {
-      if (!user._id || !user) return res.status(499).send("No User Found.");
-      else {
-        const match = await bcrypt.compare(req.body.password, user.password);
-        if (match) {
-          res.send(user._id);
-        } else {
-          res.send("");
-        }
+      if (!user || !user._id) return res.status(499).send("No User Found.");
+      const match = await bcrypt.compare(req.body.password, user.password);
+      if (match) {
+        res.send(user._id);
+      } else {
+        res.send("");
       }
     })
     .catch((err) => {
