@@ -10,14 +10,16 @@ const app = express();
 const cors = require("cors");
 app.use(cors({
   origin: 'https://keeper-web-app-99jd.vercel.app',
-  methods: ['GET', 'POST', 'PATCH', 'DELETE']
+  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 app.use(express.json());
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
 mongoose.connect(
-  `mongodb+srv://admin-vansh:vanshjain2060@cluster0.ki3p5of.mongodb.net/userNotesDB`,
+  `mongodb+srv://admin-vansh:${process.env.PASSWORD}@cluster0.ki3p5of.mongodb.net/userNotesDB`,
   { useNewUrlParser: true, useUnifiedTopology: true }
 );
 
