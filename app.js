@@ -5,7 +5,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import bodyParser from "body-parser";
-import { auth } from "./middleware/auth.middleware.js";
+import { authenticate } from "./middleware/auth.middleware.js";
 
 const salRound = 10;
 
@@ -19,20 +19,6 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Middleware to check authentication
-const authenticate = (req, res, next) => {
-  const token = req.cookies.token;
-  if (!token) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
-  try {
-    const decoded = jwt.verify(token, "this is our secret key");
-    req.user = decoded;
-    next();
-  } catch (error) {
-    res.status(401).json({ message: "Invalid token" });
-  }
-};
 
 app.get("/checkLoggedIn", authenticate, (req, res) => {
   res.json({ isLoggedIn: true, userId: req.user.id });
