@@ -25,6 +25,7 @@ app.get("/auth", auth, (req, res) => {
   res.send(req.user._id)
 })
 
+
 app.post("/register", async function (req, res) {
   const { email, password } = req.body;
   try {
